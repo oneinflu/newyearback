@@ -1,0 +1,510 @@
+{
+  "info": {
+    "name": "Influu API",
+    "_postman_id": "b3f5c8c1-0000-4f7a-9abc-postman-col",
+    "description": "Complete API collection with payloads, responses, and status codes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "{{baseUrl}}" },
+    { "key": "username", "value": "{{username}}" },
+    { "key": "offerId", "value": "{{offerId}}" },
+    { "key": "portfolioId", "value": "{{portfolioId}}" },
+    { "key": "paymentLinkMongoId", "value": "{{paymentLinkMongoId}}" },
+    { "key": "paymentId", "value": "{{paymentId}}" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "try {",
+          "  const jwt = pm.environment.get('jwt');",
+          "  if (jwt && !pm.request.headers.has('Authorization')) {",
+          "    pm.request.headers.add({ key: 'Authorization', value: `Bearer ${jwt}` });",
+          "  }",
+          "} catch (e) {}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Password)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"identifier\":\"{{username}}\",\"password\":\"secret123\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const token = json && json.data && json.data.token;",
+                  "  if (token) pm.environment.set(\"jwt\", token);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": { "method": "POST", "url": "{{baseUrl}}/auth/login" },
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"token\":\"<token>\",\"user\":{\"id\":\"<id>\",\"username\":\"{{username}}\",\"email\":\"user@example.com\"}}}"
+            },
+            {
+              "name": "400 Missing Password",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\"success\":false,\"status\":\"missing_password\",\"message\":\"Password not set. Use OTP login.\"}"
+            }
+          ]
+        },
+        {
+          "name": "Send Login OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/otp/send",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"identifier\":\"{{username}}\"}" }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"OTP sent\",\"data\":{\"delivery\":\"email\"}}"
+            }
+          ]
+        },
+        {
+          "name": "Login with OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/otp/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"identifier\":\"{{username}}\",\"code\":\"123456\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const token = json && json.data && json.data.token;",
+                  "  if (token) pm.environment.set(\"jwt\", token);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"token\":\"<token>\",\"user\":{\"id\":\"<id>\",\"username\":\"{{username}}\",\"email\":\"user@example.com\"}}}"
+            },
+            {
+              "name": "401 Invalid/Expired",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\"success\":false,\"status\":\"unauthorized\",\"message\":\"Invalid code\"}"
+            }
+          ]
+        },
+        {
+          "name": "Check Username Availability (GET)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/username/check?username={{username}}"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"available\":false}}"
+            }
+          ]
+        },
+        {
+          "name": "Check Username Availability (POST)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/username/check",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"username\":\"newuser\"}" }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"available\":true}}"
+            }
+          ]
+        },
+        {
+          "name": "Start Registration",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register/start",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const id = json && json.data && json.data.id;",
+                  "  if (id) pm.environment.set(\"regId\", id);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            { "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"registration_started\",\"data\":{\"id\":\"<id>\"}}" }
+          ]
+        },
+        {
+          "name": "Send Registration OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register/otp/send",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"id\":\"{{regId}}\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const id = json && json.data && json.data.id;",
+                  "  if (id) pm.environment.set(\"regId\", id);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            { "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"OTP sent\",\"data\":{\"delivery\":\"email\"}}"}
+          ]
+        },
+        {
+          "name": "Save Registration Username",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register/username/save",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"id\":\"{{regId}}\",\"username\":\"{{username}}\"}" }
+          },
+          "response": [
+            { "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"username_saved\"}" }
+          ]
+        },
+        {
+          "name": "Verify Registration OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register/otp/verify",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"id\":\"{{regId}}\",\"code\":\"123456\"}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const token = json && json.data && json.data.token;",
+                  "  if (token) pm.environment.set(\"jwt\", token);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            { "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"User created\",\"data\":{\"token\":\"<token>\",\"user\":{\"id\":\"<id>\",\"username\":\"{{username}}\",\"email\":\"{{email}}\"}}}" }
+          ]
+        },
+        {
+          "name": "Register with OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"user@example.com\",\"username\":\"newuser\",\"code\":\"123456\",\"category\":\"Creator\",\"name\":\"Sonia\",\"shortBio\":\"Creating content that converts.\",\"avatarUrl\":\"/avatar-placeholder.png\",\"links\":[{\"platform\":\"instagram\",\"url\":\"https://instagram.com/sonia\"}]}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const token = json && json.data && json.data.token;",
+                  "  if (token) pm.environment.set(\"jwt\", token);",
+                  "} catch (e) {}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": [
+            { "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"User registered\",\"data\":{\"token\":\"<token>\",\"user\":{\"id\":\"<id>\",\"username\":\"newuser\",\"email\":\"user@example.com\"}}}" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users" },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "[{\"_id\":\"<id>\",\"username\":\"charlie\"}]" }]
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"username\":\"charlie\",\"email\":\"charlie@example.com\"}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"_id\":\"<id>\",\"username\":\"charlie\",\"email\":\"charlie@example.com\"}" }]
+        },
+        {
+          "name": "Get Profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/{{username}}" },
+          "response": [
+            { "name": "200 OK", "status": "OK", "code": 200, "body": "{\"profile\":{\"id\":\"<id>\",\"username\":\"{{username}}\",\"role\":\"Creator\"},\"offers\":[],\"links\":[],\"portfolio\":[],\"payment\":{\"upiId\":null,\"payEnabled\":false},\"theme\":\"light\"}" }
+          ]
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{username}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"shortBio\":\"New bio\",\"password\":\"secret123\"}" }
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"_id\":\"<id>\",\"username\":\"{{username}}\",\"shortBio\":\"New bio\"}" }]
+        },
+        {
+          "name": "Upload Avatar (URL)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/avatar",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/avatar.png\"}" }
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"avatarUrl\":\"https://res.cloudinary.com/...\"}" }]
+        }
+      ]
+    },
+    {
+      "name": "Offers",
+      "item": [
+        {
+          "name": "Create Offer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/offers",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Instagram Reel Promotion\",\"description\":\"1 Reel + 3 Stories\",\"priceType\":\"Fixed Price\",\"price\":8000,\"cta\":\"request\",\"currency\":\"INR\"}"
+            }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"offer\":{\"id\":\"<id>\",\"title\":\"Instagram Reel Promotion\",\"priceType\":\"Fixed Price\",\"price\":8000}}}" }]
+        },
+        {
+          "name": "List Offers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{username}}/offers",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }]
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"offers\":[{\"_id\":\"<id>\",\"title\":\"Instagram Reel Promotion\",\"priceType\":\"Fixed Price\"}]}}" }]
+        },
+        {
+          "name": "Update Offer",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{username}}/offers/{{offerId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"priceType\":\"Custom Price\"}" }
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"offer\":{\"_id\":\"{{offerId}}\",\"priceType\":\"Custom Price\",\"price\":null}}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Portfolio",
+      "item": [
+        {
+          "name": "Create Portfolio Item",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/portfolio",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"contentType\":\"video\",\"fileUrl\":\"https://oneinflu.b-cdn.net/users/{{username}}/sample.mp4\",\"externalUrl\":null,\"title\":\"Sample\",\"brand\":\"Brand\",\"description\":\"Desc\",\"platform\":\"threads\",\"visible\":true,\"pinned\":false}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"Portfolio created\",\"data\":{\"item\":{\"id\":\"<id>\",\"contentType\":\"video\"}}}" }]
+        },
+        {
+          "name": "List Portfolio",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{username}}/portfolio",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }]
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"items\":[{\"_id\":\"<id>\",\"title\":\"Sample\"}]}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Service Requests",
+      "item": [
+        {
+          "name": "Create Service Request (Public)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/service-requests",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"John\",\"email\":\"john@example.com\",\"phone\":\"+91...\",\"whatsapp\":\"+91...\",\"description\":\"Need help\",\"offerId\":\"{{offerId}}\"}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"Service request created\",\"data\":{\"request\":{\"id\":\"<id>\",\"status\":\"new\"}}}" }]
+        },
+        {
+          "name": "List User Service Requests",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{username}}/service-requests",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }]
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"requests\":[{\"_id\":\"<id>\",\"name\":\"John\"}]}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Link",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/payments",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"amount\":2500,\"offerId\":\"{{offerId}}\",\"brand\":\"Acme\",\"notes\":\"Advance\",\"purpose\":\"Collab\"}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"Payment link created\",\"data\":{\"payment\":{\"id\":\"PAY000001\",\"url\":\"{{baseUrl}}/pay/PAY000001\"}}}" }]
+        },
+        {
+          "name": "Get Public Payment Link",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pay/{{paymentId}}" },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"payment\":{\"id\":\"{{paymentId}}\",\"amount\":2500,\"user\":{\"username\":\"{{username}}\"},\"offer\":{\"title\":\"...\"},\"upi\":\"user@upi\"}}}" }]
+        },
+        {
+          "name": "List User Payment Links",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{username}}/payments",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }]
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"payments\":[{\"paymentId\":\"PAY000001\",\"amount\":2500}]}}" }]
+        },
+        {
+          "name": "Record Transaction (JSON)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/payments/{{paymentId}}/transactions",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"amount\":2500,\"mode\":\"upi\",\"transactionId\":\"ABC123\",\"notes\":\"advance\"}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"Payment recorded\",\"data\":{\"transaction\":{\"id\":\"<id>\",\"paymentId\":\"{{paymentId}}\",\"amount\":2500,\"mode\":\"upi\"},\"payment\":{\"id\":\"{{paymentId}}\",\"status\":\"paid\"}}}" }]
+        }
+      ]
+    },
+    {
+      "name": "Social Links",
+      "item": [
+        {
+          "name": "Create Social Link",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/{{username}}/social-links",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"platform\":\"instagram\",\"url\":\"https://instagram.com/sonia\"}" }
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\"success\":true,\"status\":\"ok\",\"message\":\"Social link created\",\"data\":{\"link\":{\"id\":\"<id>\",\"platform\":\"instagram\",\"url\":\"https://instagram.com/sonia\"}}}" }]
+        },
+        {
+          "name": "List Social Links",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/{{username}}/social-links",
+            "header": [{ "key": "Authorization", "value": "Bearer {{jwt}}" }]
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\"success\":true,\"status\":\"ok\",\"data\":{\"links\":[{\"_id\":\"<id>\",\"platform\":\"instagram\",\"url\":\"https://instagram.com/sonia\"}]}}" }]
+        }
+      ]
+    }
+  ]
+}

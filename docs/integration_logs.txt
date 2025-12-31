@@ -1,0 +1,132 @@
+Influu API Integration Logs (untitled-ui)
+
+Base URL
+- http://localhost:4000
+- All /users/:username/... endpoints require Authorization: Bearer <JWT> except GET /users/:username and GET /users/:username/profile
+
+Auth: Registration (Step-by-step)
+- Start registration
+  - POST /auth/register/start
+  - Body:
+    {"email":"user@example.com"}
+  - Response: { "success": true, "data": { "id": "<regId>" } }
+- Check username availability
+  - GET /auth/username/check?username=newuser
+  - or POST /auth/username/check {"username":"newuser"}
+- Save username to session
+  - POST /auth/register/username/save
+  - Body with session id:
+    {"id":"<regId>","username":"newuser"}
+  - Fallback (if regId not stored):
+    {"email":"user@example.com","username":"newuser"}
+- Send OTP (after username chosen)
+  - POST /auth/register/otp/send
+  - Body:
+    {"id":"<regId>"}
+  - Dev mode returns otp when DEV_EXPOSE_OTP=true
+- Verify OTP and create user
+  - POST /auth/register/otp/verify
+  - Body:
+    {"id":"<regId>","code":"123456"}
+  - Response contains JWT token and user object
+
+Auth: Login
+- Login with password
+  - POST /auth/login
+  - Body:
+    {"identifier":"username_or_email","password":"secret123"}
+  - Response contains JWT token
+- Login via OTP
+  - POST /auth/otp/send
+    {"identifier":"username_or_email"}
+  - POST /auth/otp/login
+    {"identifier":"username_or_email","code":"123456"}
+  - Response contains JWT token
+
+JWT
+- Header required: Authorization: Bearer <token>
+- Token expires in 7 days
+
+User Profile (Public)
+- GET /users/:username
+- GET /users/:username/profile
+- Response includes profile, offers (visible), links, portfolio (visible), payment info
+
+User Updates (Protected)
+- PATCH /users/:username
+  - Body example:
+    {"category":"Creator","name":"Sonia","shortBio":"Creating content","upi":"user@upi"}
+- Avatar (Protected)
+  - POST /users/:username/avatar
+  - JSON body:
+    {"url":"https://example.com/avatar.png"}
+  - or multipart/form-data with file field "avatar"
+
+Offers (Protected)
+- List: GET /users/:username/offers
+- Create: POST /users/:username/offers
+  - {"title":"Instagram Reel","description":"1 Reel + 3 Stories","priceType":"Fixed Price","price":8000,"cta":"request","currency":"INR"}
+- Get: GET /users/:username/offers/:id
+- Update: PATCH /users/:username/offers/:id
+  - {"priceType":"Custom Price"} (price optional)
+- Delete: DELETE /users/:username/offers/:id
+
+Portfolio (Protected)
+- List: GET /users/:username/portfolio
+- Create: POST /users/:username/portfolio
+  - {"contentType":"video","fileUrl":"https://oneinflu.b-cdn.net/users/<username>/sample.mp4","externalUrl":null,"title":"Sample","brand":"Brand","description":"Desc","platform":"threads","visible":true,"pinned":false}
+- Get: GET /users/:username/portfolio/:id
+- Update: PATCH /users/:username/portfolio/:id
+- Delete: DELETE /users/:username/portfolio/:id
+
+Social Links (Protected)
+- List: GET /users/:username/social-links
+- Create: POST /users/:username/social-links
+  - {"platform":"instagram","url":"https://instagram.com/handle"}
+- Get: GET /users/:username/social-links/:id
+- Update: PATCH /users/:username/social-links/:id
+- Delete: DELETE /users/:username/social-links/:id
+
+Payments
+- Create link (Protected)
+  - POST /users/:username/payments
+  - {"amount":2500,"offerId":"<offerId>","brand":"Acme","notes":"Advance","purpose":"Collab","currency":"INR"}
+  - Response includes payment id and URL /pay/<paymentId>
+- List links (Protected): GET /users/:username/payments
+- Get link (Protected): GET /users/:username/payments/:id
+- Update link (Protected): PATCH /users/:username/payments/:id
+- Delete link (Protected): DELETE /users/:username/payments/:id
+- Public payment page
+  - GET /pay/:paymentId
+  - Returns payment details, offer, and user UPI
+- Record transaction (Protected)
+  - POST /users/:username/payments/:paymentId/transactions
+  - JSON only:
+    {"amount":2500,"mode":"upi","transactionId":"ABC123","notes":"advance"}
+  - or multipart/form-data with optional file field "proof"
+
+Service Requests
+- Public create: POST /service-requests
+  - {"name":"John","email":"john@example.com","phone":"+91...","whatsapp":"+91...","description":"Need help","offerId":"<offerId>"}
+- User list (Protected): GET /users/:username/service-requests
+- User get (Protected): GET /users/:username/service-requests/:id
+- User update (Protected): PATCH /users/:username/service-requests/:id
+- User delete (Protected): DELETE /users/:username/service-requests/:id
+
+Curl Examples (replace <token>, <username>, <regId>, ids)
+- Start registration:
+  curl -s -X POST $BASE/auth/register/start -H 'Content-Type: application/json' -d '{"email":"user@example.com"}'
+- Save username:
+  curl -s -X POST $BASE/auth/register/username/save -H 'Content-Type: application/json' -d '{"id":"<regId>","username":"newuser"}'
+- Send OTP:
+  curl -s -X POST $BASE/auth/register/otp/send -H 'Content-Type: application/json' -d '{"id":"<regId>"}'
+- Verify:
+  curl -s -X POST $BASE/auth/register/otp/verify -H 'Content-Type: application/json' -d '{"id":"<regId>","code":"123456"}'
+- Create offer:
+  curl -s -X POST $BASE/users/<username>/offers -H "Authorization: Bearer <token>" -H 'Content-Type: application/json' -d '{"title":"Instagram Reel","description":"1 Reel + 3 Stories","priceType":"Fixed Price","price":8000,"cta":"request","currency":"INR"}'
+- Create payment link:
+  curl -s -X POST $BASE/users/<username>/payments -H "Authorization: Bearer <token>" -H 'Content-Type: application/json' -d '{"amount":2500,"offerId":"<offerId>","brand":"Acme","notes":"Advance","purpose":"Collab"}'
+
+Notes
+- Always send valid JSON (double quotes), no trailing commas
+- For file uploads, use multipart/form-data and remove application/json header
