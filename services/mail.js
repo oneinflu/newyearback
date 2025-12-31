@@ -1,10 +1,13 @@
 const Mailgun = require("mailgun.js");
 const formData = require("form-data");
 const os = require("os");
+require("dotenv").config();
 const appName = process.env.APP_NAME || "INFLU";
 const apiKey = process.env.MAILGUN_API_KEY || "";
 const domain = process.env.MAILGUN_DOMAIN || "";
 const endpoint = process.env.MAILGUN_URL || "";
+const SIMPLE_DOMAIN = "mail.oneinflu.com";
+const SIMPLE_FROM = "INFLU MEDIA TECH <postmaster@mail.oneinflu.com>";
 
 let client = null;
 function getClient() {
@@ -21,14 +24,14 @@ function getClient() {
 
 async function sendEmail({ to, subject, text, html, from }) {
   try {
-    if (!apiKey || !domain) {
+    if (!apiKey) {
       return { ok: false, error: "mailgun_not_configured" };
     }
     const mg = getClient();
     const toList = Array.isArray(to) ? to.filter(Boolean) : [to];
     if (!toList.length) return { ok: false, error: "no_recipient" };
-    const fromAddr = from || `${appName} <postmaster@${domain}>`;
-    const res = await mg.messages.create(domain, {
+    const fromAddr = from || SIMPLE_FROM;
+    const res = await mg.messages.create(SIMPLE_DOMAIN, {
       from: fromAddr,
       to: toList,
       subject,
