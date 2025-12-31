@@ -1,10 +1,12 @@
 const crypto = require("crypto");
+require("dotenv").config();
 
 async function createDirectory(path) {
   const zone = process.env.BUNNY_STORAGE_ZONE;
   const key = process.env.BUNNY_ACCESS_KEY;
   if (!zone || !key) throw new Error("bunny_not_configured");
-  const url = `https://storage.bunnycdn.com/${zone}/${path}`.replace(/\/+/g, "/").replace(":/", "://");
+  const base = `https://storage.bunnycdn.com/${zone}/${path}`.replace(/\/+/g, "/").replace(":/", "://");
+  const url = `${base}/`.replace(/\/+/g, "/").replace(":/", "://");
   const res = await fetch(url, { method: "PUT", headers: { AccessKey: key, "Content-Length": "0" } });
   if (!res.ok && res.status !== 409) throw new Error("bunny_storage_error");
   return true;
@@ -24,6 +26,31 @@ async function ensureUserFolder(username) {
 
 function cdnBase() {
   return (process.env.BUNNY_CDN_BASE_URL || "https://oneinflu.b-cdn.net").replace(/\/+$/, "");
+}
+
+async function deleteStoragePath(path) {
+  const zone = process.env.BUNNY_STORAGE_ZONE;
+  const key = process.env.BUNNY_ACCESS_KEY;
+  if (!zone || !key) throw new Error("bunny_not_configured");
+  const url = `https://storage.bunnycdn.com/${zone}/${path}`.replace(/\/+/g, "/").replace(":/", "://");
+  const res = await fetch(url, { method: "DELETE", headers: { AccessKey: key } });
+  if (!res.ok && res.status !== 404) throw new Error("bunny_storage_error");
+  return true;
+}
+
+function pathFromCdnUrl(url) {
+  const base = cdnBase();
+  const s = String(url || "");
+  if (!s.startsWith(base)) return null;
+  const rel = s.slice(base.length).replace(/^\/+/, "");
+  return rel || null;
+}
+
+async function deleteByCdnUrl(url) {
+  const path = pathFromCdnUrl(url);
+  if (!path) return false;
+  await deleteStoragePath(path);
+  return true;
 }
 
 function idFolder(userId) {
@@ -107,5 +134,8 @@ module.exports = {
   idFolder,
   ensureUserFolderId,
   uploadUserFile,
-  getFolderUsageById
+  getFolderUsageById,
+  deleteStoragePath,
+  pathFromCdnUrl,
+  deleteByCdnUrl
 };

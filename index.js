@@ -101,11 +101,18 @@ app.get("/users/:username/payments/:id", requireAuth, requireOwnerParam("usernam
 app.patch("/users/:username/payments/:id", requireAuth, requireOwnerParam("username"), paymentCtrl.updateForUser);
 app.delete("/users/:username/payments/:id", requireAuth, requireOwnerParam("username"), paymentCtrl.removeForUser);
 const socialCtrl = require("./controllers/socialLinkController");
+const manualPayCtrl = require("./controllers/manualPaymentController");
 app.post("/users/:username/social-links", requireAuth, requireOwnerParam("username"), socialCtrl.createForUser);
 app.get("/users/:username/social-links", requireAuth, requireOwnerParam("username"), socialCtrl.listForUser);
 app.get("/users/:username/social-links/:id", requireAuth, requireOwnerParam("username"), socialCtrl.getForUser);
 app.patch("/users/:username/social-links/:id", requireAuth, requireOwnerParam("username"), socialCtrl.updateForUser);
 app.delete("/users/:username/social-links/:id", requireAuth, requireOwnerParam("username"), socialCtrl.removeForUser);
+// Manual payments (no link)
+app.post("/users/:username/manual-payments", requireAuth, requireOwnerParam("username"), manualPayCtrl.createForUser);
+app.get("/users/:username/manual-payments", requireAuth, requireOwnerParam("username"), manualPayCtrl.listForUser);
+app.get("/users/:username/manual-payments/:id", requireAuth, requireOwnerParam("username"), manualPayCtrl.getForUser);
+app.patch("/users/:username/manual-payments/:id", requireAuth, requireOwnerParam("username"), manualPayCtrl.updateForUser);
+app.delete("/users/:username/manual-payments/:id", requireAuth, requireOwnerParam("username"), manualPayCtrl.removeForUser);
 app.post("/users/id/:id/social-links", requireAuth, requireOwnerId("id"), socialCtrl.createForUserById);
 app.get("/users/id/:id/social-links", requireAuth, requireOwnerId("id"), socialCtrl.listForUserById);
 app.get("/users/id/:id/social-links/:linkId", requireAuth, requireOwnerId("id"), socialCtrl.getForUserById);
