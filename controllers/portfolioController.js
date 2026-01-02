@@ -1,15 +1,12 @@
 const Portfolio = require("../models/portfolio");
 const User = require("../models/user");
-const { ensureUserFolderId, uploadUserFile, getFolderUsageById, deleteByCdnUrl } = require("../services/bunny");
+const { uploadUserFile, getFolderUsageById, deleteByCdnUrl } = require("../services/bunny");
 
 exports.createForUser = async (req, res) => {
   try {
     const { username } = req.params;
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, status: "not_found", message: "User not found" });
-    try {
-      await ensureUserFolderId(user._id);
-    } catch (_) {}
     const data = req.body || {};
     if (req.file && req.file.buffer) {
       const limit = 15 * 1024 * 1024 * 1024;

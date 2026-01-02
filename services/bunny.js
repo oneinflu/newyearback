@@ -71,14 +71,12 @@ async function uploadUserFile(usernameOrId, buffer, filename, contentType) {
   if (!zone || !key) throw new Error("bunny_not_configured");
   const isId = /^[a-f0-9]{24}$/i.test(String(usernameOrId));
   const basePath = isId ? idFolder(usernameOrId) : userFolder(usernameOrId);
-  await createDirectory(basePath);
   const ext = (filename || "").split(".").pop() || (contentType || "").split("/").pop() || "bin";
   const safeName = `${Date.now()}_${crypto.randomBytes(6).toString("hex")}.${ext.toLowerCase()}`;
   const path = `${basePath}/${safeName}`.replace(/\/+/g, "/");
   const url = `https://storage.bunnycdn.com/${zone}/${path}`.replace(/\/+/g, "/").replace(":/", "://");
   const headers = {
     AccessKey: key,
-    "Content-Length": String(buffer.length),
     "Content-Type": contentType || "application/octet-stream"
   };
   const res = await fetch(url, { method: "PUT", headers, body: buffer });
