@@ -7,11 +7,18 @@ exports.createForUser = async (req, res) => {
     const { username } = req.params;
     const user = await User.findOne({ username });
     if (!user) return res.status(404).json({ success: false, status: "not_found", message: "User not found" });
-    await ensureUserFolderId(user._id);
+    try {
+      await ensureUserFolderId(user._id);
+    } catch (_) {}
     const data = req.body || {};
     if (req.file && req.file.buffer) {
       const limit = 15 * 1024 * 1024 * 1024;
-      const used = await getFolderUsageById(user._id);
+      let used = 0;
+      try {
+        used = await getFolderUsageById(user._id);
+      } catch (_) {
+        used = 0;
+      }
       const size = Number(req.file.size || req.file.buffer.length || 0);
       if (used + size > limit) {
         return res.status(413).json({ success: false, status: "error", message: "storage_limit_reached", traceId: "trace_portfolio" });
@@ -84,7 +91,12 @@ exports.updateForUser = async (req, res) => {
     const data = req.body || {};
     if (req.file && req.file.buffer) {
       const limit = 15 * 1024 * 1024 * 1024;
-      const used = await getFolderUsageById(user._id);
+      let used = 0;
+      try {
+        used = await getFolderUsageById(user._id);
+      } catch (_) {
+        used = 0;
+      }
       const size = Number(req.file.size || req.file.buffer.length || 0);
       if (used + size > limit) {
         return res.status(413).json({ success: false, status: "error", message: "storage_limit_reached" });
