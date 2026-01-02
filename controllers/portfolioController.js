@@ -1,13 +1,6 @@
 const Portfolio = require("../models/portfolio");
 const User = require("../models/user");
 const { ensureUserFolderId, uploadUserFile, getFolderUsageById, deleteByCdnUrl } = require("../services/bunny");
-const cloudinary = require("cloudinary").v2;
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
 exports.createForUser = async (req, res) => {
   try {
@@ -23,24 +16,8 @@ exports.createForUser = async (req, res) => {
       if (used + size > limit) {
         return res.status(413).json({ success: false, status: "error", message: "storage_limit_reached", traceId: "trace_portfolio" });
       }
-      try {
-        const uploaded = await uploadUserFile(String(user._id), req.file.buffer, req.file.originalname || "upload.bin", req.file.mimetype || "application/octet-stream");
-        data.fileUrl = uploaded.url;
-      } catch (err) {
-        const cfg = cloudinary.config();
-        if (cfg.cloud_name && cfg.api_key && cfg.api_secret) {
-          const uploaded = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { folder: `portfolio/users/${username}`, overwrite: false },
-              (error, result) => (error ? reject(error) : resolve(result))
-            );
-            stream.end(req.file.buffer);
-          });
-          data.fileUrl = uploaded.secure_url || uploaded.url;
-        } else {
-          throw err;
-        }
-      }
+      const uploaded = await uploadUserFile(String(user._id), req.file.buffer, req.file.originalname || "upload.bin", req.file.mimetype || "application/octet-stream");
+      data.fileUrl = uploaded.url;
       if (!data.contentType) {
         const mt = req.file.mimetype || "";
         data.contentType = mt.startsWith("video/") ? "video" : mt.startsWith("image/") ? "image" : "link";
@@ -112,24 +89,8 @@ exports.updateForUser = async (req, res) => {
       if (used + size > limit) {
         return res.status(413).json({ success: false, status: "error", message: "storage_limit_reached" });
       }
-      try {
-        const uploaded = await uploadUserFile(String(user._id), req.file.buffer, req.file.originalname || "upload.bin", req.file.mimetype || "application/octet-stream");
-        data.fileUrl = uploaded.url;
-      } catch (err) {
-        const cfg = cloudinary.config();
-        if (cfg.cloud_name && cfg.api_key && cfg.api_secret) {
-          const uploaded = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { folder: `portfolio/users/${username}`, overwrite: false },
-              (error, result) => (error ? reject(error) : resolve(result))
-            );
-            stream.end(req.file.buffer);
-          });
-          data.fileUrl = uploaded.secure_url || uploaded.url;
-        } else {
-          throw err;
-        }
-      }
+      const uploaded = await uploadUserFile(String(user._id), req.file.buffer, req.file.originalname || "upload.bin", req.file.mimetype || "application/octet-stream");
+      data.fileUrl = uploaded.url;
       if (!data.contentType) {
         const mt = req.file.mimetype || "";
         data.contentType = mt.startsWith("video/") ? "video" : mt.startsWith("image/") ? "image" : "link";

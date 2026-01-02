@@ -126,10 +126,11 @@ app.get("/users/:username/enquiries/:id", requireAuth, requireOwnerParam("userna
 app.patch("/users/:username/enquiries/:id", requireAuth, requireOwnerParam("username"), serviceReqCtrl.updateForUser);
 app.delete("/users/:username/enquiries/:id", requireAuth, requireOwnerParam("username"), serviceReqCtrl.removeForUser);
 const portfolioCtrl = require("./controllers/portfolioController");
-app.post("/users/:username/portfolio", requireAuth, requireOwnerParam("username"), portfolioCtrl.createForUser);
+const { upload } = require("./middlewares/upload");
+app.post("/users/:username/portfolio", requireAuth, requireOwnerParam("username"), upload.single("file"), portfolioCtrl.createForUser);
 app.get("/users/:username/portfolio", requireAuth, requireOwnerParam("username"), portfolioCtrl.listForUser);
 app.get("/users/:username/portfolio/:id", requireAuth, requireOwnerParam("username"), portfolioCtrl.getForUser);
-app.patch("/users/:username/portfolio/:id", requireAuth, requireOwnerParam("username"), portfolioCtrl.updateForUser);
+app.patch("/users/:username/portfolio/:id", requireAuth, requireOwnerParam("username"), upload.single("file"), portfolioCtrl.updateForUser);
 app.delete("/users/:username/portfolio/:id", requireAuth, requireOwnerParam("username"), portfolioCtrl.removeForUser);
 
 const PORT = process.env.PORT || 8090;
