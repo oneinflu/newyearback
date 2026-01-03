@@ -276,10 +276,34 @@ exports.sendOtp = async (req, res) => {
     if (!query) return res.status(400).json({ success: false, status: "error", message: "invalid identifier" });
     const user = await User.findOne(query);
     if (!user) return res.status(404).json({ success: false, status: "not_found", message: "User not found" });
+
+    // Rate limit: Check for recent OTP (last 30 seconds) to prevent double sending
+    const recentOtp = await LoginOtp.findOne({
+      user: user._id,
+      createdAt: { $gt: new Date(Date.now() - 30 * 1000) },
+      used: false
+    }).sort({ createdAt: -1 });
+
+    const expose = process.env.DEV_EXPOSE_OTP === "true";
+    if (recentOtp) {
+      if (expose) {
+        console.log("OTP (login) [throttled]:", user.username || user.email || "", recentOtp.code);
+      }
+      return res.json({
+        success: true,
+        status: "ok",
+        message: "OTP sent",
+        data: {
+          delivery: "email",
+          ...(expose ? { otp: recentOtp.code, throttled: true } : {})
+        }
+      });
+    }
+
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await LoginOtp.create({ user: user._id, code, expiresAt });
-    const expose = process.env.DEV_EXPOSE_OTP === "true";
+    
     if (expose) {
       console.log("OTP (login):", user.username || user.email || "", code);
     }
