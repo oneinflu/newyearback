@@ -61,6 +61,7 @@ app.get("/__routes", (req, res) => {
   });
   res.json(routes);
 });
+app.use("/api", require("./routes/tools"));
 app.use("/users", require("./routes/users"));
 app.use("/offers", require("./routes/offers"));
 app.post("/offers", (req, res) => {
