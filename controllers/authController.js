@@ -51,6 +51,25 @@ exports.sendRegisterOtp = async (req, res) => {
         row = await RegisterOtp.create({ email, code: null, expiresAt: starterExpires, stage: "started" });
       }
     }
+
+    // Rate limit: Check if OTP was sent recently (last 30 seconds)
+    if (row.code && row.updatedAt > new Date(Date.now() - 30 * 1000)) {
+      const expose = process.env.DEV_EXPOSE_OTP === "true";
+      if (expose) {
+        console.log("OTP (register) [throttled]:", row.email || "", row.code);
+      }
+      return res.json({
+        success: true,
+        status: "ok",
+        message: "OTP sent",
+        data: {
+          delivery: "email",
+          id: String(row._id),
+          ...(expose ? { otp: row.code, throttled: true } : {})
+        }
+      });
+    }
+
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     row.code = code;
