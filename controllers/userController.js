@@ -28,6 +28,50 @@ exports.create = async (req, res) => {
   }
 };
 
+exports.getPublicUsers = async (req, res) => {
+  try {
+    const users = await User.find({}).select("name email avatarUrl username shortBio category").lean();
+    const results = [];
+
+    for (const user of users) {
+      const [offerCount, portfolioCount, socialCount] = await Promise.all([
+        Offer.countDocuments({ user: user._id }),
+        Portfolio.countDocuments({ user: user._id }),
+        SocialLink.countDocuments({ user: user._id })
+      ]);
+
+      const hasDetails = (
+        (user.avatarUrl && user.avatarUrl.length > 0) ||
+        offerCount > 0 ||
+        portfolioCount > 0 ||
+        socialCount > 0
+      );
+
+      if (hasDetails) {
+        results.push({
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          avatarUrl: user.avatarUrl,
+          category: user.category,
+          stats: {
+            offerings: offerCount,
+            portfolio: portfolioCount,
+            socialLinks: socialCount
+          }
+        });
+      }
+    }
+
+    res.json({
+      count: results.length,
+      users: results
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getByUsername = async (req, res) => {
   try {
     const { username } = req.params;

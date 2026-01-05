@@ -14,6 +14,7 @@ const analyticsCtrl = require("../controllers/analyticsController");
 router.get("/", requireAuth, ctrl.list);
 router.post("/", requireAuth, ctrl.create);
 router.get("/me", requireAuth, ctrl.getMe);
+router.get("/public/list", ctrl.getPublicUsers);
 router.get("/:username", ctrl.getByUsername);
 router.get("/:username/profile", ctrl.getProfile);
 router.get("/:username/storage", requireAuth, requireOwnerParam("username"), ctrl.getStorageUsage);
